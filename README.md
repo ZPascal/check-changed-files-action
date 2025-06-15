@@ -78,5 +78,4 @@ jobs:
 
 ## License
 
-See [LICENSE](./LICENSE).
-```
+The gcp-bucket-upload-action is licensed under the [Apache 2.0](LICENSE).
