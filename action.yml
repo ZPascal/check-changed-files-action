@@ -1,5 +1,5 @@
 # action.yaml
-name: "GitHub check changed files Action"
+name: "Check Changed Files"
 description: "GitHub Action to check changed files in a Git repository"
 inputs:
   checked_location:
