@@ -1,0 +1,36 @@
+# action.yaml
+name: "GitHub check changed files Action"
+description: "GitHub Action to check changed files in a Git repository"
+inputs:
+  checked_location:
+    description: "Enter the location of the files, seperated by ;. Example: src/;docs/test.txt;tests/test*"
+    required: true
+  git_location:
+    description: ""
+    required: false
+    default: ""
+  check_all_files:
+    description: "Enables the check of all defined files and folders in the directory"
+    default: "false"
+    required: false
+runs:
+  using: "composite"
+  steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Install Python Dependencies
+      run: python3 -m pip install pygit2
+      shell: bash
+
+    - name: Check the changed files (wrapper)
+      run: |
+        optional_flags=""
+        if [ -n "${{ inputs.git_location }}" ]; then
+            optional_flags+="-gl ${{ inputs.git_location }}"
+        fi
+        if [ "${{ inputs.check_all_files }}" == "true" ]; then
+            optional_flags+=" -caf"
+        fi
+        python3 src/check_changed_files.py -cl "${{ inputs.checked_location }}" $optional_flags
+      shell: bash

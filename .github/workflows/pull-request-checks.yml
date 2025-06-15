@@ -1,0 +1,53 @@
+name: PR checks
+
+on:
+  pull_request:
+    branches: [ main ]
+
+jobs:
+
+  pr-test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [ '3.12' ]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          architecture: x64
+          cache: 'pip'
+
+      - name: Install the requirements
+        run: pip install pygit2
+
+      - name: Execute the unittests
+        run: python3 -m unittest discover tests
+
+  pr-lint:
+    runs-on: ubuntu-latest
+    permissions: write-all
+    strategy:
+      matrix:
+        python-version: [ '3.12' ]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          architecture: x64
+          cache: 'pip'
+
+      - name: Execute the linting checks
+        uses: reviewdog/action-flake8@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          flake8_args: --config=.flake8
+          fail_on_error: true
