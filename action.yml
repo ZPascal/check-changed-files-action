@@ -1,6 +1,10 @@
 # action.yaml
 name: "Check Changed Files"
 description: "GitHub Action to check changed files in a Git repository"
+author: "ZPascal"
+branding:
+  icon: check
+  color: blue
 inputs:
   checked_location:
     description: "Enter the location of the files, seperated by ;. Example: src/;docs/test.txt;tests/test*"
