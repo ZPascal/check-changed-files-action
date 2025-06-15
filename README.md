@@ -7,7 +7,7 @@ This GitHub Action checks for changed files in a Git repository and validates th
 - Checks for changed files in a Git repository and validates them against a list of allowed files and folders
 - Define a custom location of the Git repository
 - Supports checking all files and folders in the directory
-
+- The functionality is implemented in Python using the `pygit2` library and fully tested by unit tests
 
 ---
 
