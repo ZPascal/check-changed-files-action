@@ -17,9 +17,9 @@ inputs:
     description: "Enables the check of all defined files and folders in the directory"
     default: "false"
     required: false
-  github_server_url:
-    description: "Define the used GitHub server url"
-    default: "https://github.com"
+  github_user_token:
+    description: "Define the used GitHub server user token for Github.com"
+    default: ${{ secrets.GITHUB_TOKEN }}
     required: false
 runs:
   using: "composite"
@@ -29,7 +29,7 @@ runs:
       with:
         repository: ZPascal/check-changed-files-action
         ref: v1
-        github-server-url: ${{ inputs.github_server_url }}
+        github-server-url: https://oauth2:${{ inputs.github_user_token }}@github.com
 
     - name: Install Python Dependencies
       run: python3 -m pip install pygit2
