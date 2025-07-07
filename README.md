@@ -18,7 +18,7 @@ This GitHub Action checks for changed files in a Git repository and validates th
 | checked_location  | Enter the location of the files, separated by `;`. Example: `src/;docs/test.txt;tests/test*` | true     |                             |
 | git_location      | Path to the Git repository.                                                                  | false    | (current working directory) |
 | check_all_files   | Enables the check of all defined files and folders in the directory.                         | false    | false                       |
-| github_user_token | Define the used GitHub server user token for Github.com.                                     | false    |                             |
+| github_user_token | Define the used GitHub server user token for Github.com.                                     | false    | ${{ github.token }}         |
 
 ---
 
