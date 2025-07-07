@@ -23,10 +23,10 @@ jobs:
           cache: 'pip'
 
       - name: Install the requirements
-        run: pip install pygit2
+        run: pip install -r requirements.txt
 
       - name: Execute the unittests
-        run: python3 -m unittest discover tests
+        run: PYTHONPATH=src python3 -m unittest discover tests
 
   pr-lint:
     runs-on: ubuntu-latest
@@ -50,4 +50,4 @@ jobs:
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           flake8_args: --config=.flake8
-          fail_on_error: true
+          fail_level: "error"

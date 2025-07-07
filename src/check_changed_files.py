@@ -113,12 +113,9 @@ class CheckedChangedFiles:
                 changed_files.append(filepath)
         return changed_files
 
-    def validate_changed_files(self):
+    def files_changed(self) -> bool:
         """
         Validates that all changed files are within the allowed checked locations.
-
-        Raises:
-            ValueError: If no changed files are found.
         """
 
         changed_files: list[str] = self._get_changed_files()
@@ -136,17 +133,31 @@ class CheckedChangedFiles:
                                 self._logger.info(
                                     f"All changed files are allowed in checked location {checked_files_and_folder}."
                                 )
-                                return
+                                return True
+                            else:
+                                self._logger.info(
+                                    f"Not all changed files are allowed in checked location {checked_files_and_folder}."
+                                )
+                                return False
                         else:
                             self._logger.info(
                                 f"Changed file {changed_file} is allowed in checked location "
                                 f"{checked_files_and_folder}."
                             )
-                            break
+                            return True
+                    else:
+                        self._logger.info(
+                            f"Changed file {changed_file} is not a part of the checked location "
+                            f"{checked_files_and_folder}."
+                        )
+                        return False
+            return False
         else:
-            raise ValueError("No changed files found.")
+            self._logger.info("No changed files found.")
+            return False
 
 
 if __name__ == "__main__":
     checked_changed_files: CheckedChangedFiles = CheckedChangedFiles()
-    checked_changed_files.validate_changed_files()
+    files_changed: bool = checked_changed_files.files_changed()
+    print(str(files_changed).lower())

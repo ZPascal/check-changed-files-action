@@ -19,8 +19,16 @@ inputs:
     required: false
   github_user_token:
     description: "Define the used GitHub server user token for Github.com"
-    default: "GITHUB_TOKEN"
+    default: ${{ github.token }}
     required: false
+  action_version:
+    description: "Define the used version of the Github action. The parameter should only be used, if you want force overwrite the default version"
+    default: ${{ github.action_ref }}
+    required: false
+outputs:
+  files_changed:
+    description: "Returns true if changed files are detected and false by default"
+    value: ${{ steps.check-changed-files.outputs.changed-files }}
 runs:
   using: "composite"
   steps:
@@ -28,14 +36,16 @@ runs:
       uses: actions/checkout@v4
       with:
         repository: ZPascal/check-changed-files-action
-        ref: v1
-        github-server-url: https://oauth2:${{ secrets[inputs.github_user_token] }}@github.com
+        ref: ${{ inputs.action_version }}
+        github-server-url: https://github.com
+        token: ${{ inputs.github_user_token }}
 
     - name: Install Python Dependencies
       run: python3 -m pip install pygit2
       shell: bash
 
     - name: Check the changed files (wrapper)
+      id: check-changed-files
       run: |
         optional_flags=""
         if [ -n "${{ inputs.git_location }}" ]; then
@@ -44,5 +54,5 @@ runs:
         if [ "${{ inputs.check_all_files }}" == "true" ]; then
             optional_flags+=" -caf"
         fi
-        python3 src/check_changed_files.py -cl "${{ inputs.checked_location }}" $optional_flags
+        echo "changed-files=$(python3 src/check_changed_files.py -cl '${{ inputs.checked_location }}' $optional_flags)" >> "$GITHUB_OUTPUT"
       shell: bash
