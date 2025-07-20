@@ -8,17 +8,19 @@ This GitHub Action checks for changed files in a Git repository and validates th
 - Define a custom location of the Git repository
 - Supports checking all files and folders in the directory
 - The functionality is implemented in Python using the `pygit2` library and fully tested by unit tests
+- The action can be used in GitHub Enterprise environments
 
 ---
 
 ## Inputs
 
-| Name              | Description                                                                                  | Required | Default                     |
-|-------------------|----------------------------------------------------------------------------------------------|----------|-----------------------------|
-| checked_location  | Enter the location of the files, separated by `;`. Example: `src/;docs/test.txt;tests/test*` | true     |                             |
-| git_location      | Path to the Git repository.                                                                  | false    | (current working directory) |
-| check_all_files   | Enables the check of all defined files and folders in the directory.                         | false    | false                       |
-| github_user_token | Define the used GitHub server user token for Github.com.                                     | false    | ${{ github.token }}         |
+| Name              | Description                                                                                                                       | Required | Default                     |
+|-------------------|-----------------------------------------------------------------------------------------------------------------------------------|----------|-----------------------------|
+| checked_location  | Enter the location of the files, separated by `;`. Example: `src/;docs/test.txt;tests/test*`                                      | true     |                             |
+| git_location      | Path to the Git repository.                                                                                                       | false    | (current working directory) |
+| check_all_files   | Enables the check of all defined files and folders in the directory.                                                              | false    | false                       |
+| github_user_token | Define the used GitHub server user token for Github.com.                                                                          | false    | ${{ github.token }}         |
+| action_version    | Define the used version of the Github action. The parameter should only be used, if you want force overwrite the default version. | false    | ${{ github.action_ref }}    |
 
 ---
 
@@ -54,11 +56,17 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Check changed files
+        id: test-changed-files
         uses: ZPascal/check-changed-files-action@v1
         with:
           checked_location: 'src/;docs/README.md'
           git_location: './'
           check_all_files: 'true'
+
+      - name: Test
+        if: steps.test-changed-files.outputs.files_changed == 'true'
+        run: |
+          echo "Files changed: ${{ steps.test-changed-files.outputs.files_changed }}"
 ```
 
 ---
@@ -66,7 +74,13 @@ jobs:
 ## Output
 
 - Logs info about changed files that are allowed or not allowed.
-- The workflow fails if changed files are not within the allowed locations.
+- Returns true/ false and reports if changed files are detected.
+
+### Output table
+
+| Name          | Description                                                      |
+|---------------|------------------------------------------------------------------|
+| files_changed | Returns true if changed files are detected and false by default. |
 
 ---
 
@@ -79,4 +93,4 @@ jobs:
 
 ## License
 
-The gcp-bucket-upload-action is licensed under the [Apache 2.0](LICENSE).
+The check-changed-files-action is licensed under the [Apache 2.0](LICENSE).
