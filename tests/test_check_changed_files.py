@@ -137,10 +137,10 @@ class TestCheckedChangedFiles(TestCase):
         self.check_changed_files._checked_location = "src/"
         self.check_changed_files._check_all_files = False
         self.check_changed_files._logger = MagicMock()
-        self.check_changed_files.validate_changed_files()
+        self.assertEqual(True, self.check_changed_files.files_changed())
 
         self.check_changed_files._logger.info.assert_called_with(
-            "Changed file src/test.py is allowed in checked location src/."
+            "Changed file src/test.py is allowed in checked location ['src/']."
         )
 
     @patch("check_changed_files.CheckedChangedFiles._get_changed_files")
@@ -151,8 +151,7 @@ class TestCheckedChangedFiles(TestCase):
         self.check_changed_files._check_all_files = False
         self.check_changed_files._logger = MagicMock()
 
-        with self.assertRaises(ValueError):
-            self.check_changed_files.validate_changed_files()
+        self.assertEqual(False, self.check_changed_files.files_changed())
 
     @patch("check_changed_files.CheckedChangedFiles._get_changed_files")
     def test_validate_changed_files_with_changes_all_changes(self, get_changed_files_mock):
@@ -161,8 +160,64 @@ class TestCheckedChangedFiles(TestCase):
         self.check_changed_files._checked_location = "src/"
         self.check_changed_files._check_all_files = True
         self.check_changed_files._logger = MagicMock()
-        self.check_changed_files.validate_changed_files()
+        self.assertEqual(True, self.check_changed_files.files_changed())
 
         self.check_changed_files._logger.info.assert_called_with(
-            "All changed files are allowed in checked location src/."
+            "All changed files are allowed in checked location ['src/']."
+        )
+
+    @patch("check_changed_files.CheckedChangedFiles._get_changed_files")
+    def test_validate_changed_files_multiple_locations(self, get_changed_files_mock):
+        get_changed_files_mock.return_value = ["src/test.py", "docs/README.md"]
+
+        self.check_changed_files._checked_location = "src/;docs/"
+        self.check_changed_files._check_all_files = True
+        self.check_changed_files._logger = MagicMock()
+
+        self.assertEqual(True, self.check_changed_files.files_changed())
+
+        self.check_changed_files._logger.info.assert_called_with(
+            "All changed files are allowed in checked location docs/."
+        )
+
+    @patch("check_changed_files.CheckedChangedFiles._get_changed_files")
+    def test_validate_changed_files_with_not_allowed_changes(self, get_changed_files_mock):
+        get_changed_files_mock.return_value = ["temp/test.py"]
+
+        self.check_changed_files._checked_location = "src/"
+        self.check_changed_files._check_all_files = False
+        self.check_changed_files._logger = MagicMock()
+
+        self.assertEqual(False, self.check_changed_files.files_changed())
+
+        self.check_changed_files._logger.info.assert_called_with(
+            "Changed file temp/test.py is not a part of the checked location ['src/']."
+        )
+
+    @patch("check_changed_files.CheckedChangedFiles._get_changed_files")
+    def test_validate_changed_files_partial_matches_all_files(self, get_changed_files_mock):
+        get_changed_files_mock.return_value = ["src/test.py", "temp/test.py"]
+
+        self.check_changed_files._checked_location = "src/"
+        self.check_changed_files._check_all_files = True
+        self.check_changed_files._logger = MagicMock()
+
+        self.assertEqual(False, self.check_changed_files.files_changed())
+
+        self.check_changed_files._logger.info.assert_called_with(
+            "Changed file temp/test.py is not a part of the checked location ['src/']."
+        )
+
+    @patch("check_changed_files.CheckedChangedFiles._get_changed_files")
+    def test_validate_changed_files_multiple_checks(self, get_changed_files_mock):
+        get_changed_files_mock.return_value = ["src/subfolder/test.py"]
+
+        self.check_changed_files._checked_location = "docs/;src/;test/"
+        self.check_changed_files._check_all_files = False
+        self.check_changed_files._logger = MagicMock()
+
+        self.assertEqual(True, self.check_changed_files.files_changed())
+
+        self.check_changed_files._logger.info.assert_called_with(
+            "Changed file src/subfolder/test.py is allowed in checked location src/."
         )

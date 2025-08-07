@@ -9,7 +9,7 @@ from pygit2 import Repository, GIT_STATUS_CURRENT, GitError
 
 class CheckedChangedFiles:
     """
-    A class to check for changed files in a Git repository and validates them against a list of allowed files/folders list.
+    A class to check for changed files in a Git repository and validates them against a list of allowed files/folders.
 
     Attributes:
         _logger (logging.Logger): Logger instance for tracking operations
@@ -125,37 +125,39 @@ class CheckedChangedFiles:
         if len(changed_files) > 0:
             for changed_file in changed_files:
                 for checked_files_and_folder in checked_files_and_folders:
+                    print(f"{changed_file} | {checked_files_and_folder}")
                     if checked_files_and_folder in changed_file:
                         if self._check_all_files:
                             checked_files_and_folders_counter += 1
 
+                            print(f"{len(changed_files)} | {checked_files_and_folders_counter}")
                             if len(changed_files) == checked_files_and_folders_counter:
                                 self._logger.info(
-                                    f"All changed files are allowed in checked location {checked_files_and_folder}."
+                                    f"All changed files are allowed in checked location {checked_files_and_folders}."
                                 )
                                 return True
-                            else:
-                                self._logger.info(
-                                    f"Not all changed files are allowed in checked location {checked_files_and_folder}."
-                                )
-                                return False
                         else:
                             self._logger.info(
                                 f"Changed file {changed_file} is allowed in checked location "
-                                f"{checked_files_and_folder}."
+                                f"{checked_files_and_folders}."
                             )
                             return True
+                    elif not self._check_all_files:
+                        pass
                     else:
                         self._logger.info(
                             f"Changed file {changed_file} is not a part of the checked location "
-                            f"{checked_files_and_folder}."
+                            f"{checked_files_and_folders}."
                         )
+                        print("HIER1")
                         return False
             return False
         else:
             self._logger.info("No changed files found.")
             return False
 
+
+# TODO New unittests
 
 if __name__ == "__main__":
     checked_changed_files: CheckedChangedFiles = CheckedChangedFiles()
