@@ -1,3 +1,6 @@
+import sys, io, runpy
+from contextlib import redirect_stdout
+
 from unittest import TestCase
 from unittest.mock import patch, MagicMock, Mock
 
@@ -131,7 +134,7 @@ class TestCheckedChangedFiles(TestCase):
         )
 
     @patch("check_changed_files.CheckedChangedFiles._get_changed_files")
-    def test_validate_changed_files_with_changes(self, get_changed_files_mock):
+    def test_files_changed_with_changes(self, get_changed_files_mock):
         get_changed_files_mock.return_value = ["src/test.py"]
 
         self.check_changed_files._checked_location = "src/"
@@ -144,7 +147,7 @@ class TestCheckedChangedFiles(TestCase):
         )
 
     @patch("check_changed_files.CheckedChangedFiles._get_changed_files")
-    def test_validate_changed_files_no_changes(self, get_changed_files_mock):
+    def test_files_changed_no_changes(self, get_changed_files_mock):
         get_changed_files_mock.return_value = []
 
         self.check_changed_files._checked_location = "src/"
@@ -154,7 +157,7 @@ class TestCheckedChangedFiles(TestCase):
         self.assertEqual(False, self.check_changed_files.files_changed())
 
     @patch("check_changed_files.CheckedChangedFiles._get_changed_files")
-    def test_validate_changed_files_with_changes_all_changes(self, get_changed_files_mock):
+    def test_files_changed_with_changes_all_changes(self, get_changed_files_mock):
         get_changed_files_mock.return_value = ["src/test.py"]
 
         self.check_changed_files._checked_location = "src/"
@@ -167,21 +170,21 @@ class TestCheckedChangedFiles(TestCase):
         )
 
     @patch("check_changed_files.CheckedChangedFiles._get_changed_files")
-    def test_validate_changed_files_multiple_locations(self, get_changed_files_mock):
+    def test_files_changed_multiple_locations(self, get_changed_files_mock):
         get_changed_files_mock.return_value = ["src/test.py", "docs/README.md"]
 
-        self.check_changed_files._checked_location = "src/;docs/"
+        self.check_changed_files._checked_location = "src;docs"
         self.check_changed_files._check_all_files = True
         self.check_changed_files._logger = MagicMock()
 
         self.assertEqual(True, self.check_changed_files.files_changed())
 
         self.check_changed_files._logger.info.assert_called_with(
-            "All changed files are allowed in checked location docs/."
+            "All changed files are allowed in checked location ['src', 'docs']."
         )
 
     @patch("check_changed_files.CheckedChangedFiles._get_changed_files")
-    def test_validate_changed_files_with_not_allowed_changes(self, get_changed_files_mock):
+    def test_files_changed_with_not_allowed_changes(self, get_changed_files_mock):
         get_changed_files_mock.return_value = ["temp/test.py"]
 
         self.check_changed_files._checked_location = "src/"
@@ -195,7 +198,7 @@ class TestCheckedChangedFiles(TestCase):
         )
 
     @patch("check_changed_files.CheckedChangedFiles._get_changed_files")
-    def test_validate_changed_files_partial_matches_all_files(self, get_changed_files_mock):
+    def test_files_changed_partial_matches_all_files(self, get_changed_files_mock):
         get_changed_files_mock.return_value = ["src/test.py", "temp/test.py"]
 
         self.check_changed_files._checked_location = "src/"
@@ -209,7 +212,7 @@ class TestCheckedChangedFiles(TestCase):
         )
 
     @patch("check_changed_files.CheckedChangedFiles._get_changed_files")
-    def test_validate_changed_files_multiple_checks(self, get_changed_files_mock):
+    def test_files_changed_multiple_checks(self, get_changed_files_mock):
         get_changed_files_mock.return_value = ["src/subfolder/test.py"]
 
         self.check_changed_files._checked_location = "docs/;src/;test/"
@@ -219,5 +222,29 @@ class TestCheckedChangedFiles(TestCase):
         self.assertEqual(True, self.check_changed_files.files_changed())
 
         self.check_changed_files._logger.info.assert_called_with(
-            "Changed file src/subfolder/test.py is allowed in checked location src/."
+            "Changed file src/subfolder/test.py is allowed in checked location ['docs/', 'src/', 'test/']."
         )
+
+    @patch("check_changed_files.CheckedChangedFiles._get_changed_files")
+    def test_files_changed_returns_false_when_checked_location_is_empty(self, get_changed_files_mock):
+        get_changed_files_mock.return_value = ["some/path/file.txt"]
+
+        class EmptySplit:
+            def split(self, sep):
+                return []
+
+        self.check_changed_files._checked_location = EmptySplit()
+        self.check_changed_files._check_all_files = True
+        self.check_changed_files._logger = MagicMock()
+
+        self.assertFalse(self.check_changed_files.files_changed())
+
+    @patch("os.path.exists", retun_value=True)
+    @patch("os.path.isdir", return_value=True)
+    def test_main_prints_true(self, isdir_mock, exists_mock):
+        argv = ["check_changed_files.py", "-cl", "src", "-gl", "."]
+        with patch.object(sys, "argv", argv):
+            buf = io.StringIO()
+            with redirect_stdout(buf):
+                runpy.run_module("check_changed_files", run_name="__main__")
+        self.assertEqual("true\n", buf.getvalue())

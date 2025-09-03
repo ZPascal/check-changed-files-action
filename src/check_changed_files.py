@@ -125,12 +125,10 @@ class CheckedChangedFiles:
         if len(changed_files) > 0:
             for changed_file in changed_files:
                 for checked_files_and_folder in checked_files_and_folders:
-                    print(f"{changed_file} | {checked_files_and_folder}")
                     if checked_files_and_folder in changed_file:
                         if self._check_all_files:
                             checked_files_and_folders_counter += 1
 
-                            print(f"{len(changed_files)} | {checked_files_and_folders_counter}")
                             if len(changed_files) == checked_files_and_folders_counter:
                                 self._logger.info(
                                     f"All changed files are allowed in checked location {checked_files_and_folders}."
@@ -142,22 +140,22 @@ class CheckedChangedFiles:
                                 f"{checked_files_and_folders}."
                             )
                             return True
-                    elif not self._check_all_files:
-                        pass
                     else:
-                        self._logger.info(
-                            f"Changed file {changed_file} is not a part of the checked location "
-                            f"{checked_files_and_folders}."
-                        )
-                        print("HIER1")
-                        return False
+                        file_found = False
+                        for other_checked_location in checked_files_and_folders:
+                            if other_checked_location in changed_file:
+                                file_found = True
+                                break
+                        if not file_found and checked_files_and_folder == checked_files_and_folders[-1]:
+                            self._logger.info(
+                                f"Changed file {changed_file} is not a part of the checked location "
+                                f"{checked_files_and_folders}."
+                            )
+                            return False
             return False
         else:
             self._logger.info("No changed files found.")
             return False
-
-
-# TODO New unittests
 
 if __name__ == "__main__":
     checked_changed_files: CheckedChangedFiles = CheckedChangedFiles()
