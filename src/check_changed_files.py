@@ -9,7 +9,7 @@ from pygit2 import Repository, GIT_STATUS_CURRENT, GitError
 
 class CheckedChangedFiles:
     """
-    A class to check for changed files in a Git repository and validates them against a list of allowed files/folders list.
+    A class to check for changed files in a Git repository and validates them against a list of allowed files/folders.
 
     Attributes:
         _logger (logging.Logger): Logger instance for tracking operations
@@ -37,7 +37,7 @@ class CheckedChangedFiles:
 
         Returns:
              _checked_location (str): Files and folder to check (semicolon-separated)
-             _git_location (str): Git location folder as a relative or absolute path (default is current working directory)
+             _git_location (str): Git location folder as a relative or absolute path (default is the current working directory)
              _check_all_files (bool): Whether to check all files in the repository (default is False)
         """
 
@@ -113,12 +113,9 @@ class CheckedChangedFiles:
                 changed_files.append(filepath)
         return changed_files
 
-    def validate_changed_files(self):
+    def files_changed(self) -> bool:
         """
         Validates that all changed files are within the allowed checked locations.
-
-        Raises:
-            ValueError: If no changed files are found.
         """
 
         changed_files: list[str] = self._get_changed_files()
@@ -134,19 +131,33 @@ class CheckedChangedFiles:
 
                             if len(changed_files) == checked_files_and_folders_counter:
                                 self._logger.info(
-                                    f"All changed files are allowed in checked location {checked_files_and_folder}."
+                                    f"All changed files are allowed in checked location {checked_files_and_folders}."
                                 )
-                                return
+                                return True
                         else:
                             self._logger.info(
                                 f"Changed file {changed_file} is allowed in checked location "
-                                f"{checked_files_and_folder}."
+                                f"{checked_files_and_folders}."
                             )
-                            break
+                            return True
+                    else:
+                        file_found = False
+                        for other_checked_location in checked_files_and_folders:
+                            if other_checked_location in changed_file:
+                                file_found = True
+                                break
+                        if not file_found and checked_files_and_folder == checked_files_and_folders[-1]:
+                            self._logger.info(
+                                f"Changed file {changed_file} is not a part of the checked location "
+                                f"{checked_files_and_folders}."
+                            )
+                            return False
+            return False
         else:
-            raise ValueError("No changed files found.")
-
+            self._logger.info("No changed files found.")
+            return False
 
 if __name__ == "__main__":
     checked_changed_files: CheckedChangedFiles = CheckedChangedFiles()
-    checked_changed_files.validate_changed_files()
+    files_changed: bool = checked_changed_files.files_changed()
+    print(str(files_changed).lower())
