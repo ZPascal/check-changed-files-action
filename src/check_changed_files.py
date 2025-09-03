@@ -37,7 +37,7 @@ class CheckedChangedFiles:
 
         Returns:
              _checked_location (str): Files and folder to check (semicolon-separated)
-             _git_location (str): Git location folder as a relative or absolute path (default is current working directory)
+             _git_location (str): Git location folder as a relative or absolute path (default is the current working directory)
              _check_all_files (bool): Whether to check all files in the repository (default is False)
         """
 
