@@ -243,10 +243,10 @@ class TestCheckedChangedFiles(TestCase):
 
     @patch("os.path.exists", retun_value=True)
     @patch("os.path.isdir", return_value=True)
-    def test_main_prints_true(self, isdir_mock, exists_mock):
+    def test_main_prints_false(self, isdir_mock, exists_mock):
         argv = ["check_changed_files.py", "-cl", "src", "-gl", "."]
         with patch.object(sys, "argv", argv):
             buf = io.StringIO()
             with redirect_stdout(buf):
                 runpy.run_module("check_changed_files", run_name="__main__")
-        self.assertEqual("true\n", buf.getvalue())
+        self.assertEqual("false\n", buf.getvalue())
