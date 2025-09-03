@@ -1,4 +1,6 @@
-import sys, io, runpy
+import sys
+import io
+import runpy
 from contextlib import redirect_stdout
 
 from unittest import TestCase
