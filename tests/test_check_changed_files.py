@@ -136,6 +136,15 @@ class TestCheckedChangedFiles(TestCase):
         )
 
     @patch("check_changed_files.CheckedChangedFiles._get_changed_files")
+    def test_files_changed_special_case(self, get_changed_files_mock):
+        get_changed_files_mock.return_value = ["releases/graphite-nozzle/graphite-nozzle-147.yml",
+                                               "releases/graphite-nozzle/index.yml"]
+
+        self.check_changed_files._checked_location = "releases/graphite-nozzle/index.yml"
+        self.check_changed_files._logger = MagicMock()
+        self.assertEqual(True, self.check_changed_files.files_changed())
+
+    @patch("check_changed_files.CheckedChangedFiles._get_changed_files")
     def test_files_changed_with_changes(self, get_changed_files_mock):
         get_changed_files_mock.return_value = ["src/test.py"]
 
@@ -145,7 +154,7 @@ class TestCheckedChangedFiles(TestCase):
         self.assertEqual(True, self.check_changed_files.files_changed())
 
         self.check_changed_files._logger.info.assert_called_with(
-            "Changed file src/test.py is allowed in checked location ['src/']."
+            "Changed file src/test.py is allowed in checked locations ['src/']."
         )
 
     @patch("check_changed_files.CheckedChangedFiles._get_changed_files")
@@ -168,7 +177,7 @@ class TestCheckedChangedFiles(TestCase):
         self.assertEqual(True, self.check_changed_files.files_changed())
 
         self.check_changed_files._logger.info.assert_called_with(
-            "All changed files are allowed in checked location ['src/']."
+            "All changed files are allowed in checked locations ['src/']."
         )
 
     @patch("check_changed_files.CheckedChangedFiles._get_changed_files")
@@ -182,7 +191,7 @@ class TestCheckedChangedFiles(TestCase):
         self.assertEqual(True, self.check_changed_files.files_changed())
 
         self.check_changed_files._logger.info.assert_called_with(
-            "All changed files are allowed in checked location ['src', 'docs']."
+            "All changed files are allowed in checked locations ['src', 'docs']."
         )
 
     @patch("check_changed_files.CheckedChangedFiles._get_changed_files")
@@ -196,12 +205,12 @@ class TestCheckedChangedFiles(TestCase):
         self.assertEqual(False, self.check_changed_files.files_changed())
 
         self.check_changed_files._logger.info.assert_called_with(
-            "Changed file temp/test.py is not a part of the checked location ['src/']."
+            "Changed file temp/test.py is not a part of the checked locations ['src/']."
         )
 
     @patch("check_changed_files.CheckedChangedFiles._get_changed_files")
     def test_files_changed_partial_matches_all_files(self, get_changed_files_mock):
-        get_changed_files_mock.return_value = ["src/test.py", "temp/test.py"]
+        get_changed_files_mock.return_value = ["temp/test.py"]
 
         self.check_changed_files._checked_location = "src/"
         self.check_changed_files._check_all_files = True
@@ -210,7 +219,7 @@ class TestCheckedChangedFiles(TestCase):
         self.assertEqual(False, self.check_changed_files.files_changed())
 
         self.check_changed_files._logger.info.assert_called_with(
-            "Changed file temp/test.py is not a part of the checked location ['src/']."
+            "Changed file temp/test.py is not a part of the checked locations ['src/']."
         )
 
     @patch("check_changed_files.CheckedChangedFiles._get_changed_files")
@@ -224,7 +233,7 @@ class TestCheckedChangedFiles(TestCase):
         self.assertEqual(True, self.check_changed_files.files_changed())
 
         self.check_changed_files._logger.info.assert_called_with(
-            "Changed file src/subfolder/test.py is allowed in checked location ['docs/', 'src/', 'test/']."
+            "Changed file src/subfolder/test.py is allowed in checked locations ['docs/', 'src/', 'test/']."
         )
 
     @patch("check_changed_files.CheckedChangedFiles._get_changed_files")
@@ -241,9 +250,13 @@ class TestCheckedChangedFiles(TestCase):
 
         self.assertFalse(self.check_changed_files.files_changed())
 
-    @patch("os.path.exists", retun_value=True)
+    @patch("pygit2.Repository")
     @patch("os.path.isdir", return_value=True)
-    def test_main_prints_false(self, isdir_mock, exists_mock):
+    @patch("os.path.exists", return_value=True)
+    @patch("os.path.abspath", return_value="/test")
+    def test_main_prints_false(self, abspath_mock, exists_mock, isdir_mock, mock_repo):
+        mock_repo.return_value.status.return_value = {}
+
         argv = ["check_changed_files.py", "-cl", "src", "-gl", "."]
         with patch.object(sys, "argv", argv):
             buf = io.StringIO()

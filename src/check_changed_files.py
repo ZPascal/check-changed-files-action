@@ -68,6 +68,20 @@ class CheckedChangedFiles:
 
         return arg_parser.parse_args()
 
+    @staticmethod
+    def _is_file_in_allowed_locations(file: str, checked_locations: list[str]) -> bool:
+        """
+        Checks if a file path matches any of the allowed locations.
+
+        Args:
+            file (str): The file path to check
+            checked_locations (list[str]): List of allowed location patterns
+
+        Returns:
+            bool: True if the file matches any allowed location, False otherwise
+        """
+        return any(loc in file for loc in checked_locations)
+
     def _validate_git_path(self):
         """
         Validates that the provided git location is a valid Git repository.
@@ -113,49 +127,74 @@ class CheckedChangedFiles:
                 changed_files.append(filepath)
         return changed_files
 
+    def _check_all_files_allowed(self, changed_files: list[str], checked_locations: list[str]) -> bool:
+        """
+        Checks if ALL changed files are in allowed locations.
+
+        Args:
+            changed_files (list[str]): List of changed file paths
+            checked_locations (list[str]): List of allowed location patterns
+
+        Returns:
+            bool: True if all files are allowed, False otherwise
+        """
+        if all(self._is_file_in_allowed_locations(file, checked_locations) for file in changed_files):
+            self._logger.info(
+                f"All changed files are allowed in checked locations {checked_locations}."
+            )
+            return True
+
+        for file in changed_files:
+            if not self._is_file_in_allowed_locations(file, checked_locations):
+                self._logger.info(
+                    f"Changed file {file} is not a part of the checked locations {checked_locations}."
+                )
+                break
+        return False
+
+    def _check_any_file_allowed(self, changed_files: list[str], checked_locations: list[str]) -> bool:
+        """
+        Checks if ANY changed file is in allowed locations.
+
+        Args:
+            changed_files (list[str]): List of changed file paths
+            checked_locations (list[str]): List of allowed location patterns
+
+        Returns:
+            bool: True if at least one file is allowed, False otherwise
+        """
+        for file in changed_files:
+            if self._is_file_in_allowed_locations(file, checked_locations):
+                self._logger.info(
+                    f"Changed file {file} is allowed in checked locations {checked_locations}."
+                )
+                return True
+
+        if changed_files:
+            self._logger.info(
+                f"Changed file {changed_files[0]} is not a part of the checked locations {checked_locations}."
+            )
+        return False
+
     def files_changed(self) -> bool:
         """
-        Validates that all changed files are within the allowed checked locations.
+        Validates that changed files are within the allowed checked locations.
+
+        Returns:
+            bool: True if validation passes based on check mode, False otherwise
         """
+        changed_files = self._get_changed_files()
+        checked_locations = self._checked_location.split(";")
 
-        changed_files: list[str] = self._get_changed_files()
-        checked_files_and_folders: list[str] = self._checked_location.split(";")
-        checked_files_and_folders_counter: int = 0
-
-        if len(changed_files) > 0:
-            for changed_file in changed_files:
-                for checked_files_and_folder in checked_files_and_folders:
-                    if checked_files_and_folder in changed_file:
-                        if self._check_all_files:
-                            checked_files_and_folders_counter += 1
-
-                            if len(changed_files) == checked_files_and_folders_counter:
-                                self._logger.info(
-                                    f"All changed files are allowed in checked location {checked_files_and_folders}."
-                                )
-                                return True
-                        else:
-                            self._logger.info(
-                                f"Changed file {changed_file} is allowed in checked location "
-                                f"{checked_files_and_folders}."
-                            )
-                            return True
-                    else:
-                        file_found = False
-                        for other_checked_location in checked_files_and_folders:
-                            if other_checked_location in changed_file:
-                                file_found = True
-                                break
-                        if not file_found and checked_files_and_folder == checked_files_and_folders[-1]:
-                            self._logger.info(
-                                f"Changed file {changed_file} is not a part of the checked location "
-                                f"{checked_files_and_folders}."
-                            )
-                            return False
-            return False
-        else:
+        if not changed_files:
             self._logger.info("No changed files found.")
             return False
+
+        if self._check_all_files:
+            return self._check_all_files_allowed(changed_files, checked_locations)
+        else:
+            return self._check_any_file_allowed(changed_files, checked_locations)
+
 
 if __name__ == "__main__":
     checked_changed_files: CheckedChangedFiles = CheckedChangedFiles()
