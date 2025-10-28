@@ -13,6 +13,8 @@ jobs:
     steps:
       - name: Checkout the repository and the branch
         uses: actions/checkout@v5
+        with:
+          token: ${{ secrets.PAT_TOKEN }}
 
       - name: Setup the release version and overwrite the existing major version tag
         run: |
