@@ -17,14 +17,6 @@ inputs:
     description: "Enables the check of all defined files and folders in the directory"
     default: "false"
     required: false
-  github_user_token:
-    description: "Define the used GitHub server user token for Github.com"
-    default: ${{ github.token }}
-    required: false
-  action_version:
-    description: "Define the used version of the Github action. The parameter should only be used, if you want force overwrite the default version"
-    default: ${{ github.action_ref }}
-    required: false
 outputs:
   files_changed:
     description: "Returns true if changed files are detected and false by default"
@@ -32,21 +24,35 @@ outputs:
 runs:
   using: "composite"
   steps:
-    - name: Checkout
-      uses: actions/checkout@v5
-      with:
-        repository: ZPascal/check-changed-files-action
-        ref: ${{ inputs.action_version }}
-        github-server-url: https://github.com
-        token: ${{ inputs.github_user_token }}
-
     - name: Install Python Dependencies
       run: python3 -m pip install pygit2
       shell: bash
 
     - name: Check the changed files (wrapper)
       id: check-changed-files
+      env:
+        ACTION_REF: ${{ github.action_ref }}
       run: |
+        # Check if curl is installed, if not install it
+        if ! command -v curl &> /dev/null; then
+          echo "curl not found, installing..."
+          if [ -f /etc/alpine-release ]; then
+            # Alpine Linux
+            apk add --no-cache curl
+          elif [ -f /etc/debian_version ] || [ -f /etc/lsb-release ]; then
+            # Ubuntu/Debian
+            apt-get update && apt-get install -y curl
+          else
+            echo "Unsupported OS distribution"
+            exit 1
+          fi
+        fi
+        
+        # Download the check_changed_files.py script
+        echo "Downloading check_changed_files.py script..."
+        echo $ACTION_REF
+        curl -s -L -o /tmp/check_changed_files.py https://raw.githubusercontent.com/ZPascal/check-changed-files-action/refs/heads/$ACTION_REF/src/check_changed_files.py
+        
         optional_flags=""
         if [ -n "${{ inputs.git_location }}" ]; then
             optional_flags+="-gl ${{ inputs.git_location }}"
@@ -54,5 +60,5 @@ runs:
         if [ "${{ inputs.check_all_files }}" == "true" ]; then
             optional_flags+=" -caf"
         fi
-        echo "changed-files=$(python3 src/check_changed_files.py -cl '${{ inputs.checked_location }}' $optional_flags)" >> "$GITHUB_OUTPUT"
+        echo "changed-files='$(python3 /tmp/check_changed_files.py -cl '${{ inputs.checked_location }}' $optional_flags)'" >> "$GITHUB_OUTPUT"
       shell: bash
