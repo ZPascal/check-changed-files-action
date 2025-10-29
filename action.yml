@@ -17,6 +17,10 @@ inputs:
     description: "Enables the check of all defined files and folders in the directory"
     default: "false"
     required: false
+  github_user_token:
+    description: "Define the used GitHub server user token for Github.com"
+    default: ""
+    required: false
 outputs:
   files_changed:
     description: "Returns true if changed files are detected and false by default"
@@ -50,8 +54,11 @@ runs:
         
         # Download the check_changed_files.py script
         echo "Downloading check_changed_files.py script..."
-        echo $ACTION_REF
-        curl -s -L -o /tmp/check_changed_files.py https://raw.githubusercontent.com/ZPascal/check-changed-files-action/refs/heads/$ACTION_REF/src/check_changed_files.py
+        AUTH_PREFIX=""
+        if [ -n "${{ inputs.github_user_token }}" ]; then
+          AUTH_PREFIX="oauth2:${{ inputs.github_user_token }}@"
+        fi
+        curl -s -L -o /tmp/check_changed_files.py https://${AUTH_PREFIX}raw.githubusercontent.com/ZPascal/check-changed-files-action/refs/heads/$ACTION_REF/src/check_changed_files.py
         
         optional_flags=""
         if [ -n "${{ inputs.git_location }}" ]; then
