@@ -74,7 +74,10 @@ runs:
           REF_PATH="main"
         fi
         
-        curl -s -L -o /tmp/check_changed_files.py "https://${AUTH_PREFIX}raw.githubusercontent.com/ZPascal/check-changed-files-action/$REF_PATH/src/check_changed_files.py"
+        if ! curl -f -s -L -o /tmp/check_changed_files.py "https://${AUTH_PREFIX}raw.githubusercontent.com/ZPascal/check-changed-files-action/$REF_PATH/src/check_changed_files.py"; then
+          echo "Error: Failed to download check_changed_files.py script"
+          exit 1
+        fi
         
         optional_flags=""
         if [ -n "${{ inputs.git_location }}" ]; then
