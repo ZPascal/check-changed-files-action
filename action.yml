@@ -36,6 +36,7 @@ runs:
       id: check-changed-files
       env:
         ACTION_REF: ${{ github.action_ref }}
+        ACTION_SHA: ${{ github.action_sha }}
       run: |
         # Check if curl is installed, if not install it
         if ! command -v curl &> /dev/null; then
@@ -58,7 +59,17 @@ runs:
         if [ -n "${{ inputs.github_user_token }}" ]; then
           AUTH_PREFIX="oauth2:${{ inputs.github_user_token }}@"
         fi
-        curl -s -L -o /tmp/check_changed_files.py https://${AUTH_PREFIX}raw.githubusercontent.com/ZPascal/check-changed-files-action/refs/heads/$ACTION_REF/src/check_changed_files.py
+        
+        # Determine the correct ref (tag, branch, or commit SHA)
+        if [ -n "$ACTION_REF" ]; then
+          # Use tag if available
+          REF_PATH="refs/tags/$ACTION_REF"
+        else
+          # Fallback to commit SHA or main branch
+          REF_PATH="${ACTION_SHA:-main}"
+        fi
+        
+        curl -s -L -o /tmp/check_changed_files.py "https://${AUTH_PREFIX}raw.githubusercontent.com/ZPascal/check-changed-files-action/$REF_PATH/src/check_changed_files.py"
         
         optional_flags=""
         if [ -n "${{ inputs.git_location }}" ]; then
