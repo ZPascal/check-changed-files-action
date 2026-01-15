@@ -60,13 +60,18 @@ runs:
           AUTH_PREFIX="oauth2:${{ inputs.github_user_token }}@"
         fi
         
-        # Determine the correct ref (tag, branch, or commit SHA)
-        if [ -n "$ACTION_REF" ]; then
-          # Use tag if available
-          REF_PATH="refs/tags/$ACTION_REF"
+        # Determine the correct ref (commit SHA, tag, branch, or default to main)
+        if [ -n "$ACTION_SHA" ]; then
+          # Use commit SHA as primary reference (always valid)
+          REF_PATH="$ACTION_SHA"
+        elif [ -n "$ACTION_REF" ]; then
+          # Extract the actual ref name from refs/tags/* or refs/heads/*
+          # ACTION_REF format: refs/tags/v1.0.0 or refs/heads/main
+          REF_PATH="${ACTION_REF#refs/tags/}"
+          REF_PATH="${REF_PATH#refs/heads/}"
         else
-          # Fallback to commit SHA or main branch
-          REF_PATH="${ACTION_SHA:-main}"
+          # Fallback to main branch
+          REF_PATH="main"
         fi
         
         curl -s -L -o /tmp/check_changed_files.py "https://${AUTH_PREFIX}raw.githubusercontent.com/ZPascal/check-changed-files-action/$REF_PATH/src/check_changed_files.py"
