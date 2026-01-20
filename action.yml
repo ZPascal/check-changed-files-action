@@ -86,5 +86,5 @@ runs:
         if [ "${{ inputs.check_all_files }}" == "true" ]; then
             optional_flags+=" -caf"
         fi
-        echo "changed-files='$(python3 /tmp/check_changed_files.py -cl '${{ inputs.checked_location }}' $optional_flags)'" >> "$GITHUB_OUTPUT"
+        echo "changed-files=$(python3 /tmp/check_changed_files.py -cl '${{ inputs.checked_location }}' $optional_flags)" >> "$GITHUB_OUTPUT"
       shell: bash
