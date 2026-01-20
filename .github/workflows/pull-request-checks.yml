@@ -5,7 +5,6 @@ on:
     branches: [ main ]
 
 jobs:
-
   pr-test:
     runs-on: ubuntu-latest
     strategy:
@@ -51,3 +50,277 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           flake8_args: --config=.flake8
           fail_level: "error"
+
+  integrationtest-test-action-usage:
+    runs-on: ubuntu-latest
+    needs: [ pr-test, pr-lint ]
+    name: Integrationtest | Test Action - Check Changed Files
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Create test changes in src directory
+        run: |
+          echo "# Test change" >> src/test_file.py
+          echo "print('test')" >> src/another_test.py
+
+      - name: Run check-changed-files-action for src directory
+        id: check-src
+        uses: ./
+        with:
+          checked_location: 'src/'
+          git_location: './'
+
+      - name: Verify src changes detected
+        run: |
+          git status
+          echo "Files changed in src: ${{ steps.check-src.outputs.files_changed }}"
+          if [ "${{ steps.check-src.outputs.files_changed }}" != "true" ]; then
+            echo "ERROR: Expected files_changed=true for src/ changes"
+            exit 1
+          fi
+
+      - name: Create test changes in docs directory
+        run: |
+          mkdir -p docs
+          echo "# Documentation" >> docs/test.md
+
+      - name: Run check-changed-files-action for docs directory
+        id: check-docs
+        uses: ./
+        with:
+          checked_location: 'docs/'
+          git_location: './'
+
+      - name: Verify docs changes detected
+        run: |
+          echo "Files changed in docs: ${{ steps.check-docs.outputs.files_changed }}"
+          if [ "${{ steps.check-docs.outputs.files_changed }}" != "true" ]; then
+            echo "ERROR: Expected files_changed=true for docs/ changes"
+            exit 1
+          fi
+
+      - name: Verify the GH if condition format works for docs
+        if: steps.check-docs.outputs.files_changed == 'true'
+        run: |
+          echo "Files changed: ${{ steps.check-docs.outputs.files_changed }}"
+
+      - name: Run check-changed-files-action for non-existent directory
+        id: check-nonexistent
+        uses: ./
+        with:
+          checked_location: 'nonexistent/'
+          git_location: './'
+          check_all_files: 'false'
+
+      - name: Verify non-existent directory returns false
+        run: |
+          echo "Files changed in nonexistent: ${{ steps.check-nonexistent.outputs.files_changed }}"
+          # This should be false since we didn't change files in nonexistent/
+          # (we have changes in src/ and docs/, but not in nonexistent/)
+
+      - name: Verify the GH if condition format works for nonexistent
+        if: steps.check-nonexistent.outputs.files_changed == 'false'
+        run: |
+          echo "Files changed: ${{ steps.check-nonexistent.outputs.files_changed }}"
+
+  integrationtest-test-action-check-all-files:
+    runs-on: ubuntu-latest
+    needs: [ pr-test, pr-lint ]
+    name: Integrationtest | Test Action - Check All Files Mode
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Create test changes in allowed directories
+        run: |
+          echo "# Test change in src" >> src/test_src.py
+          echo "# Test change in tests" >> tests/test_integration_new.py
+
+      - name: Run check-changed-files-action with check_all_files=true
+        id: check-all-allowed
+        uses: ./
+        with:
+          checked_location: 'src/;tests/'
+          git_location: './'
+          check_all_files: 'true'
+
+      - name: Verify all files in allowed locations
+        run: |
+          echo "All files allowed: ${{ steps.check-all-allowed.outputs.files_changed }}"
+          if [ "${{ steps.check-all-allowed.outputs.files_changed }}" != "true" ]; then
+            echo "ERROR: Expected files_changed=true when all files are in allowed locations"
+            exit 1
+          fi
+
+      - name: Create change in non-allowed directory
+        run: |
+          mkdir -p config
+          echo "key: value" >> config/settings.yml
+
+      - name: Run check-changed-files-action with mixed locations
+        id: check-all-mixed
+        uses: ./
+        with:
+          checked_location: 'src/;tests/'
+          git_location: './'
+          check_all_files: 'true'
+
+      - name: Verify mixed locations fail with check_all_files=true
+        run: |
+          echo "Mixed locations result: ${{ steps.check-all-mixed.outputs.files_changed }}"
+          if [ "${{ steps.check-all-mixed.outputs.files_changed }}" != "false" ]; then
+            echo "ERROR: Expected files_changed=false when not all files are in allowed locations"
+            exit 1
+          fi
+
+  integrationtest-test-action-multiple-locations:
+    runs-on: ubuntu-latest
+    needs: [ pr-test, pr-lint ]
+    name: Integrationtest | Test Action - Multiple Locations
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Create changes in multiple directories
+        run: |
+          echo "# Change 1" >> src/file1.py
+          echo "# Change 2" >> tests/file2.py
+          mkdir -p docs
+          echo "# Change 3" >> docs/file3.md
+
+      - name: Run check-changed-files-action with multiple locations
+        id: check-multiple
+        uses: ./
+        with:
+          checked_location: 'src/;tests/;docs/'
+          git_location: './'
+          check_all_files: 'true'
+
+      - name: Verify multiple locations work
+        run: |
+          echo "Multiple locations result: ${{ steps.check-multiple.outputs.files_changed }}"
+          if [ "${{ steps.check-multiple.outputs.files_changed }}" != "true" ]; then
+            echo "ERROR: Expected files_changed=true for multiple allowed locations"
+            exit 1
+          fi
+
+  integrationtest-test-action-specific-files:
+    runs-on: ubuntu-latest
+    needs: [ pr-test, pr-lint ]
+    name: Integrationtest | Test Action - Specific File Patterns
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Modify README.md
+        run: |
+          echo "# Updated README" >> README.md
+
+      - name: Run check-changed-files-action for specific file
+        id: check-readme
+        uses: ./
+        with:
+          checked_location: 'README.md'
+          git_location: './'
+          check_all_files: 'false'
+
+      - name: Verify specific file detection
+        run: |
+          echo "README.md changed: ${{ steps.check-readme.outputs.files_changed }}"
+          if [ "${{ steps.check-readme.outputs.files_changed }}" != "true" ]; then
+            echo "ERROR: Expected files_changed=true for README.md"
+            exit 1
+          fi
+
+      - name: Modify LICENSE
+        run: |
+          echo "# Comment" >> LICENSE
+
+      - name: Run check-changed-files-action for LICENSE
+        id: check-action
+        uses: ./
+        with:
+          checked_location: 'LICENSE'
+          git_location: './'
+          check_all_files: 'false'
+
+      - name: Verify LICENSE detection
+        run: |
+          echo "LICENSE changed: ${{ steps.check-action.outputs.files_changed }}"
+          if [ "${{ steps.check-action.outputs.files_changed }}" != "true" ]; then
+            echo "ERROR: Expected files_changed=true for LICENSE"
+            exit 1
+          fi
+
+  integrationtest-test-action-with-token:
+    runs-on: ubuntu-latest
+    needs: [ pr-test, pr-lint ]
+    name: Integrationtest | Test Action - With GitHub Token
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Create test change
+        run: |
+          echo "# Test with token" >> src/token_test.py
+
+      - name: Run check-changed-files-action with token
+        id: check-with-token
+        uses: ./
+        with:
+          checked_location: 'src/'
+          git_location: './'
+          check_all_files: 'false'
+          github_user_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Verify token scenario works
+        run: |
+          echo "With token result: ${{ steps.check-with-token.outputs.files_changed }}"
+          if [ "${{ steps.check-with-token.outputs.files_changed }}" != "true" ]; then
+            echo "ERROR: Expected files_changed=true with token"
+            exit 1
+          fi
+
+  integrationtest-run-python-integration-tests:
+    runs-on: ubuntu-latest
+    name: Integrationtest | Run Python Integration Tests
+    needs: [ pr-test, pr-lint ]
+    strategy:
+      matrix:
+        python-version: [ '3.10', '3.11', '3.12', '3.13', '3.14' ]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v6
+        with:
+          python-version: ${{ matrix.python-version }}
+          architecture: x64
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run integration tests
+        run: |
+          PYTHONPATH=src python -m unittest tests.test_integration -v
