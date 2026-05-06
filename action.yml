@@ -29,7 +29,9 @@ runs:
   using: "composite"
   steps:
     - name: Install Python Dependencies
-      run: python3 -m pip install pygit2
+      run: |
+        python3 -m venv /tmp/check-action-venv
+        /tmp/check-action-venv/bin/pip install pygit2
       shell: bash
 
     - name: Check the changed files (wrapper)
@@ -86,5 +88,5 @@ runs:
         if [ "${{ inputs.check_all_files }}" == "true" ]; then
             optional_flags+=" -caf"
         fi
-        echo "changed-files=$(python3 /tmp/check_changed_files.py -cl '${{ inputs.checked_location }}' $optional_flags)" >> "$GITHUB_OUTPUT"
+        echo "changed-files=$(/tmp/check-action-venv/bin/python3 /tmp/check_changed_files.py -cl '${{ inputs.checked_location }}' $optional_flags)" >> "$GITHUB_OUTPUT"
       shell: bash
