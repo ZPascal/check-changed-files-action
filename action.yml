@@ -29,9 +29,9 @@ runs:
   using: "composite"
   steps:
     - name: Install Python Dependencies
-      run: |
-        python3 -m venv /tmp/check-action-venv
-        /tmp/check-action-venv/bin/pip install pygit2
+      env:
+        VENV_PATH: /tmp/check-action-venv
+      run: python3 -m venv "$VENV_PATH" && "$VENV_PATH/bin/pip" install pygit2
       shell: bash
 
     - name: Check the changed files (wrapper)
@@ -39,6 +39,7 @@ runs:
       env:
         ACTION_REF: ${{ github.action_ref }}
         ACTION_SHA: ${{ github.action_sha }}
+        VENV_PATH: /tmp/check-action-venv
       run: |
         # Check if curl is installed, if not install it
         if ! command -v curl &> /dev/null; then
@@ -88,5 +89,5 @@ runs:
         if [ "${{ inputs.check_all_files }}" == "true" ]; then
             optional_flags+=" -caf"
         fi
-        echo "changed-files=$(/tmp/check-action-venv/bin/python3 /tmp/check_changed_files.py -cl '${{ inputs.checked_location }}' $optional_flags)" >> "$GITHUB_OUTPUT"
+        echo "changed-files=$("$VENV_PATH/bin/python3" /tmp/check_changed_files.py -cl '${{ inputs.checked_location }}' $optional_flags)" >> "$GITHUB_OUTPUT"
       shell: bash
