@@ -85,7 +85,7 @@ jobs:
 
 ## Requirements
 
-- Python 3.x
+- Python 3.x (venv)
 - [pygit2](https://www.pygit2.org/)
 
 ---
